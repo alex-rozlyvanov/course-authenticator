@@ -1,0 +1,27 @@
+[+] - Should be functionality for registration in the system;
+[+] - Should be functionality for authentication and authorization in the system;
+[+] - There are three roles: admin, instructor, student;
+[+] - Admin user should be predefined;
+[+] - Admin should be able to manage all information in the system;
+[+] - Admin should be able to assign a role for a new user;
+[+] - Admin should be able to assign instructor for the course;
+[+] - Student can take up to 5 courses at the same time;
+[+] - Each course should have at least one instructor;
+[+] - Each course contains at least 5 lessons;
+[+] - The student should be able to upload a text file with homework;
+[+] - The instructor should be able to put a mark for a student for each lesson;
+[+] - The final mark for course is average by lessons;
+[+] - The instructor should be able to give student final feedback for the course;
+[+] - The instructor should be able to see list of his courses;
+[+] - The instructor should be able to see list of students per course;
+[+] - The student should be able to see his courses;
+[+] - The student should be able to see list of lessons per course with all related information;
+[+] - To pass the course student should get a minimum of 80% for final grade;
+
+
+[ AUTHORIZATION ] — — — — — — — [ JOURNAL ]
+                 \             /
+                  \           /
+                   [ MANAGER ]
+
+
