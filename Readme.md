@@ -39,3 +39,14 @@
 
 **Run local in docker
 build:** `./gradlew clean build -x test -x integrationTest -x contractTest && docker-compose up --build`
+
+**Push docker image to ECR:**
+- aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/k7s0v3p5
+- docker build -t course-authenticator:0.0.1 .
+- docker tag course-authenticator:0.0.1 public.ecr.aws/k7s0v3p5/course-authenticator:0.0.1
+- docker push public.ecr.aws/k7s0v3p5/course-authenticator:0.0.1
+
+./gradlew clean build -x test -x integrationTest -x contractTest \
+&& docker build -t course-authenticator:0.0.1 . \
+&& docker tag course-authenticator:0.0.1 public.ecr.aws/k7s0v3p5/course-authenticator:0.0.1 \
+&& docker push public.ecr.aws/k7s0v3p5/course-authenticator:0.0.1

@@ -55,7 +55,7 @@ public class AuthenticationIT {
     void shouldBeFunctionalityForRegistrationInTheSystem() {
         // GIVEN
         final var signUpRequest = SignUpRequest.builder()
-                .username("test+username@gmail.com")
+                .username("test+user@gmail.com")
                 .firstName("testFirstName")
                 .lastName("testLastName123")
                 .password("SomeValidSecurePass123+")
