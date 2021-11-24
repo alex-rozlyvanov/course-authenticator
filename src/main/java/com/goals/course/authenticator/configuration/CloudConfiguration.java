@@ -36,7 +36,7 @@ public class CloudConfiguration implements BeanPostProcessor {
         try {
             fargateIp = InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException e) {
-            System.out.println("Could not get the Fargate instance ip address.");
+            log.warn("Could not get the Fargate instance ip address.");
         }
     }
 
