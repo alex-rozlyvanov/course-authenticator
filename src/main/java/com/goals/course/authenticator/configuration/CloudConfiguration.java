@@ -7,6 +7,7 @@ import org.springframework.cloud.netflix.eureka.EurekaInstanceConfigBean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -30,11 +31,12 @@ public class CloudConfiguration implements BeanPostProcessor {
 
     private String fargateIp;
 
-    {
+    @PostConstruct
+    private void init() {
         try {
             fargateIp = InetAddress.getLocalHost().getHostAddress();
         } catch (UnknownHostException e) {
-            log.error("Could not get the Fargate instance ip address.");
+            System.out.println("Could not get the Fargate instance ip address.");
         }
     }
 
