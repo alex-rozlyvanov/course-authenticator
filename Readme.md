@@ -7,8 +7,8 @@
 - Gradle 7.2
 - Java 17
 - Postgres 14
-- Spring Boot 2.5.5
-- Spring Cloud 2020.0.3
+- Spring Boot 2.6.3
+- Spring Cloud 2021.0.0
 - Netflix Eureka Client
 - Flyway 7.7+
 - Lombok 1.18+
@@ -17,8 +17,8 @@
 ---
 
 - Junit 5 + Mockito + Assertj
-- TestContainers 1.16
-- Spring Cloud Contract 3.0.4
+- TestContainers 1.17.2
+- Spring Cloud Contract 3.1.3
 
 ### Responsibilities:
 

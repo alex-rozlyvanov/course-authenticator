@@ -1,13 +1,24 @@
 package com.goals.course.authenticator.dao.repository;
 
 import com.goals.course.authenticator.dao.entity.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 
-import java.util.Optional;
 import java.util.UUID;
 
-@Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByUsername(final String username);
+public interface UserRepository {
+
+    String SELECT_FIELDS = """
+            u.id as u_id,\
+            u.username as u_username,\
+            u.password as u_password,\
+            u.first_name as u_first_name,\
+            u.last_name as u_last_name,\
+            u.enabled as u_enabled\
+            """;
+
+    Mono<User> findByUsername(final String username);
+
+    Mono<User> findById(final UUID id);
+
+    Mono<User> save(final User user);
 }

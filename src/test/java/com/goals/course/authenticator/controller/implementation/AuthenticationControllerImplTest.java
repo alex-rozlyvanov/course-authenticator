@@ -1,5 +1,6 @@
 package com.goals.course.authenticator.controller.implementation;
 
+import com.goals.course.authenticator.controller.AuthenticationController;
 import com.goals.course.authenticator.dao.entity.User;
 import com.goals.course.authenticator.dto.*;
 import com.goals.course.authenticator.service.LoginService;
@@ -11,8 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.BadCredentialsException;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.UUID;
 
@@ -34,7 +35,7 @@ class AuthenticationControllerImplTest {
     private RefreshTokenService mockRefreshTokenService;
 
     @InjectMocks
-    private AuthenticationControllerImpl service;
+    private AuthenticationController service;
 
     @Test
     void login_callLogin() {
@@ -43,11 +44,13 @@ class AuthenticationControllerImplTest {
                 .username("testUsername")
                 .password("testPass")
                 .build();
+        when(mockLoginService.login(any())).thenReturn(Mono.just(LoginResponse.builder().build()));
 
         // WHEN
-        service.login(loginRequest);
+        final var mono = service.login(loginRequest);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockLoginService).login(loginRequest);
     }
 
@@ -56,36 +59,26 @@ class AuthenticationControllerImplTest {
         // GIVEN
         final var user = UserDTO.builder().username("test@gmail.com").build();
         final var loginResponse = LoginResponse.builder().user(user).build();
-        when(mockLoginService.login(any())).thenReturn(loginResponse);
+        when(mockLoginService.login(any())).thenReturn(Mono.just(loginResponse));
 
         // WHEN
         final var result = service.login(null);
 
         // THEN
-        assertThat(result.getBody()).isSameAs(loginResponse);
-    }
-
-    @Test
-    void login_BadCredentialsExceptionThrown_checkResult() {
-        // GIVEN
-        when(mockLoginService.login(any())).thenThrow(BadCredentialsException.class);
-
-        // WHEN
-        final var result = service.login(null);
-
-        // THEN
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(result.block()).isSameAs(loginResponse);
     }
 
     @Test
     void signUp_callSignUp() {
         // GIVEN
         final var signUpRequest = SignUpRequest.builder().username("test").build();
-
+        final var loginResponse = LoginResponse.builder().build();
+        when(mockSignUpService.signUp(any())).thenReturn(Mono.just(loginResponse));
         // WHEN
-        service.signUp(signUpRequest);
+        final var mono = service.signUp(signUpRequest);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockSignUpService).signUp(signUpRequest);
     }
 
@@ -94,13 +87,15 @@ class AuthenticationControllerImplTest {
         // GIVEN
         final var userDTO = UserDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000001")).build();
         final var loginResponse = LoginResponse.builder().user(userDTO).build();
-        when(mockSignUpService.signUp(any())).thenReturn(loginResponse);
+        when(mockSignUpService.signUp(any())).thenReturn(Mono.just(loginResponse));
 
         // WHEN
-        final var result = service.signUp(null);
+        final var mono = service.signUp(null);
 
         // THEN
-        assertThat(result).isSameAs(loginResponse);
+        StepVerifier.create(mono)
+                .expectNext(loginResponse)
+                .verifyComplete();
     }
 
     @Test
@@ -110,10 +105,14 @@ class AuthenticationControllerImplTest {
                 .refreshToken("test_refresh_token")
                 .build();
 
+        final var tokenRefreshResponse = TokenRefreshResponse.builder().build();
+        when(mockRefreshTokenService.refreshToken(any())).thenReturn(Mono.just(tokenRefreshResponse));
+
         // WHEN
-        service.refreshToken(refreshRequest);
+        final var mono = service.refreshToken(refreshRequest);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockRefreshTokenService).refreshToken("test_refresh_token");
     }
 
@@ -125,14 +124,18 @@ class AuthenticationControllerImplTest {
                 .accessToken("some_access_token_123")
                 .refreshToken("some_access_token_123")
                 .build();
-        when(mockRefreshTokenService.refreshToken(any())).thenReturn(tokenRefreshResponse);
+        when(mockRefreshTokenService.refreshToken(any())).thenReturn(Mono.just(tokenRefreshResponse));
 
         // WHEN
-        final var result = service.refreshToken(refreshRequest);
+        final var mono = service.refreshToken(refreshRequest);
 
         // THEN
-        assertThat(result.getAccessToken()).isEqualTo("some_access_token_123");
-        assertThat(result.getRefreshToken()).isEqualTo("some_access_token_123");
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    assertThat(result.getAccessToken()).isEqualTo("some_access_token_123");
+                    assertThat(result.getRefreshToken()).isEqualTo("some_access_token_123");
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -140,24 +143,29 @@ class AuthenticationControllerImplTest {
         // GIVEN
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000000");
         final var user = new User().setId(userId);
-        when(mockSecurityService.getCurrentUser()).thenReturn(user);
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(mockRefreshTokenService.deleteRefreshTokenByUserId(any())).thenReturn(Mono.just(1));
 
         // WHEN
-        service.logout();
+        final var mono = service.logout();
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockRefreshTokenService).deleteRefreshTokenByUserId(userId);
     }
 
     @Test
     void logout_checkResult() {
         // GIVEN
-        when(mockSecurityService.getCurrentUser()).thenReturn(new User());
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(new User()));
+        when(mockRefreshTokenService.deleteRefreshTokenByUserId(any())).thenReturn(Mono.just(1));
 
         // WHEN
-        final var result = service.logout();
+        final var mono = service.logout();
 
         // THEN
-        assertThat(result).isEqualTo("Session finished");
+        StepVerifier.create(mono)
+                .expectNext("Session finished")
+                .verifyComplete();
     }
 }

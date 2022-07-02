@@ -2,6 +2,7 @@ package com.goals.course.authenticator.mapper.implementation;
 
 import com.goals.course.authenticator.dao.entity.Role;
 import com.goals.course.authenticator.dto.RoleDTO;
+import com.goals.course.authenticator.mapper.RoleMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -22,7 +23,7 @@ class RoleMapperImplTest {
         final var role = buildRole("00000000-0000-0000-0000-000000000001");
         final var role1 = buildRole("00000000-0000-0000-0000-000000000002");
         final var roles = List.of(role, role1);
-        final var roleMapperSpy = Mockito.spy(new RoleMapperImpl());
+        final var roleMapperSpy = Mockito.spy(new RoleMapper());
 
         // WHEN
         roleMapperSpy.mapToRoleDTOList(roles);
@@ -39,7 +40,7 @@ class RoleMapperImplTest {
         final var role = buildRole("00000000-0000-0000-0000-000000000001");
         final var role1 = buildRole("00000000-0000-0000-0000-000000000002");
         final var roles = List.of(role, role1);
-        final var roleMapperSpy = Mockito.spy(new RoleMapperImpl());
+        final var roleMapperSpy = Mockito.spy(new RoleMapper());
 
         final var roleDTO = buildRoleDTO("00000000-0000-0000-0000-000000000001");
         final var roleDTO1 = buildRoleDTO("00000000-0000-0000-0000-000000000002");
@@ -60,7 +61,7 @@ class RoleMapperImplTest {
         final var role = buildRole("00000000-0000-0000-0000-000000000099");
 
         // WHEN
-        final var result = new RoleMapperImpl().mapToRoleDTO(role);
+        final var result = new RoleMapper().mapToRoleDTO(role);
 
         // THEN
         assertThat(result.getId()).hasToString("00000000-0000-0000-0000-000000000099");
@@ -72,7 +73,7 @@ class RoleMapperImplTest {
         final var role = new Role().setTitle("test_title");
 
         // WHEN
-        final var result = new RoleMapperImpl().mapToRoleDTO(role);
+        final var result = new RoleMapper().mapToRoleDTO(role);
 
         // THEN
         assertThat(result.getTitle()).isEqualTo("test_title");

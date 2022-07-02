@@ -1,4 +1,4 @@
-package com.goals.course.authenticator.service.implementation;
+package com.goals.course.authenticator.service;
 
 import com.goals.course.authenticator.dao.entity.User;
 import com.goals.course.authenticator.dao.repository.UserRepository;
@@ -10,12 +10,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,10 +26,10 @@ class UserServiceImplTest {
     @Mock
     private UserMapper mockUserMapper;
     @Mock
-    private SecurityServiceImpl mockSecurityService;
+    private SecurityService mockSecurityService;
 
     @InjectMocks
-    private UserServiceImpl service;
+    private UserService service;
 
     @Test
     void getCurrentUser_callGetById() {
@@ -37,14 +37,15 @@ class UserServiceImplTest {
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final var user = new User().setId(userId);
 
-        when(mockSecurityService.getCurrentUser()).thenReturn(user);
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(new User()));
         when(mockUserMapper.mapToUserDTO(any())).thenReturn(UserDTO.builder().build());
 
         // WHEN
-        service.getCurrentUser();
+        final var mono = service.getCurrentUser();
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockUserRepository).findById(userId);
     }
 
@@ -53,16 +54,17 @@ class UserServiceImplTest {
         // GIVEN
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final var user = new User().setId(userId);
-        when(mockSecurityService.getCurrentUser()).thenReturn(user);
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(user));
 
         final var userFromRepo = new User().setUsername("test+username@gmail.com");
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(userFromRepo));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(userFromRepo));
         when(mockUserMapper.mapToUserDTO(any())).thenReturn(UserDTO.builder().build());
 
         // WHEN
-        service.getCurrentUser();
+        final var mono = service.getCurrentUser();
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockUserMapper).mapToUserDTO(userFromRepo);
     }
 
@@ -72,17 +74,19 @@ class UserServiceImplTest {
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final var user = new User().setId(userId);
 
-        when(mockSecurityService.getCurrentUser()).thenReturn(user);
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(new User()));
 
         final var userDTO = UserDTO.builder().id(userId).build();
         when(mockUserMapper.mapToUserDTO(any())).thenReturn(userDTO);
 
         // WHEN
-        final var result = service.getCurrentUser();
+        final var mono = service.getCurrentUser();
 
         // THEN
-        assertThat(result).isSameAs(userDTO);
+        StepVerifier.create(mono)
+                .expectNext(userDTO)
+                .verifyComplete();
     }
 
     @Test
@@ -91,17 +95,19 @@ class UserServiceImplTest {
         final var userId = UUID.fromString("10000000-0000-1000-0000-000000000001");
         final var user = new User().setId(userId);
 
-        when(mockSecurityService.getCurrentUser()).thenReturn(user);
-        when(mockUserRepository.findById(any())).thenReturn(Optional.empty());
+        when(mockSecurityService.getCurrentUser()).thenReturn(Mono.just(user));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.empty());
 
         // WHEN
-        final var expectedException = assertThrows(
-                UserNotFoundException.class,
-                () -> service.getCurrentUser()
-        );
+        final var mono = service.getCurrentUser();
 
         // THEN
-        assertThat(expectedException.getMessage()).isEqualTo("User with id '10000000-0000-1000-0000-000000000001' not found!");
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(exception -> {
+                    assertThat(exception).isInstanceOf(UserNotFoundException.class);
+                    assertThat(exception).hasMessage("User with id '10000000-0000-1000-0000-000000000001' not found!");
+                })
+                .verify();
     }
 
 }

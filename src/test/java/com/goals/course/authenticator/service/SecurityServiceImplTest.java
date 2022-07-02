@@ -1,4 +1,4 @@
-package com.goals.course.authenticator.service.implementation;
+package com.goals.course.authenticator.service;
 
 import com.goals.course.authenticator.dao.entity.User;
 import org.junit.jupiter.api.Test;
@@ -6,8 +6,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
 import java.util.UUID;
 
@@ -19,28 +22,30 @@ import static org.mockito.Mockito.when;
 class SecurityServiceImplTest {
 
     @InjectMocks
-    private SecurityServiceImpl service;
+    private SecurityService service;
 
     @Test
     void getCurrentUser_checkResult() {
         // GIVEN
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final var user = new User().setId(userId);
-        setUserInSecurityContext(user);
 
         // WHEN
-        final var result = service.getCurrentUser();
+        final var mono = service.getCurrentUser()
+                .contextWrite((contextView) -> setUserInSecurityContext(user));
 
         // THEN
-        assertThat(result).isSameAs(user);
+        StepVerifier.create(mono)
+                .assertNext(result -> assertThat(result).isSameAs(user))
+                .verifyComplete();
     }
 
-    private void setUserInSecurityContext(final User user) {
+    private Context setUserInSecurityContext(final User user) {
         final var authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(user);
         final var securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(authentication);
 
-        SecurityContextHolder.setContext(securityContext);
+        return ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext));
     }
 }

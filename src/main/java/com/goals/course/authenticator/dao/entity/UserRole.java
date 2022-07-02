@@ -6,23 +6,20 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Data
 @Accessors(chain = true)
-@Table("refresh_token")
-public class RefreshToken {
+@Table("users_roles")
+public class UserRole {
+
     @Id
-    @Column
     private UUID id;
 
     @Column("user_id")
-    private User user;
+    private UUID userId;
 
     @Column
-    private String token;
+    private UUID roleId;
 
-    @Column("expiry_date")
-    private Instant expiryDate;
 }

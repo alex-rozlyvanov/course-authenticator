@@ -3,11 +3,12 @@ package com.goals.course.authenticator.dao.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.GenericGenerator;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -15,19 +16,13 @@ import java.util.UUID;
 
 @Data
 @Accessors(chain = true)
-@Entity
-@Table(name = "users")
+@Table("users")
 public class User implements UserDetails {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(
-            name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator"
-    )
-    @Column(updatable = false, nullable = false)
+    @Column
     private UUID id;
 
-    @Column(unique = true)
+    @Column
     private String username;
 
     @Column
@@ -46,12 +41,6 @@ public class User implements UserDetails {
     private boolean enabled;
 
     @Column
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "users_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
     private List<Role> roles = new ArrayList<>();
 
     @Override

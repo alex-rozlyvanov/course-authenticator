@@ -1,12 +1,10 @@
-package com.goals.course.authenticator.service.implementation;
+package com.goals.course.authenticator.service;
 
 import com.goals.course.authenticator.dao.entity.User;
 import com.goals.course.authenticator.dao.repository.UserRepository;
 import com.goals.course.authenticator.dto.SignUpRequest;
 import com.goals.course.authenticator.dto.UserDTO;
 import com.goals.course.authenticator.mapper.UserMapper;
-import com.goals.course.authenticator.service.JwtTokenService;
-import com.goals.course.authenticator.service.RefreshTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,45 +35,59 @@ class SignUpServiceImplTest {
     private RefreshTokenService mockRefreshTokenService;
 
     @InjectMocks
-    private SignUpServiceImpl service;
+    private SignUpService service;
 
     @Test
     void singUp_callUserMapper_mapToUser() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var signUpRequest = buildValidSignUpRequest();
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
 
         // WHEN
-        service.signUp(signUpRequest);
+        final var mono = service.signUp(signUpRequest);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockUserMapper).mapToUser(signUpRequest);
     }
 
     @Test
     void singUp_callPasswordEncoder_encode() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var signUpRequest = buildValidSignUpRequest();
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
-
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
         // WHEN
-        service.signUp(signUpRequest);
+        final var mono = service.signUp(signUpRequest);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockPasswordEncoder).encode(signUpRequest.getPassword());
     }
 
     @Test
     void singUp_callUserRepository_save() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var mappedUser = new User().setUsername("test234");
         when(mockUserMapper.mapToUser(any())).thenReturn(mappedUser);
         when(mockPasswordEncoder.encode(any())).thenReturn("$encodedPass$");
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
 
         // WHEN
-        service.signUp(buildValidSignUpRequest());
+        final var mono = service.signUp(buildValidSignUpRequest());
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         final var captor = ArgumentCaptor.forClass(User.class);
         verify(mockUserRepository).save(captor.capture());
 
@@ -86,63 +100,82 @@ class SignUpServiceImplTest {
     @Test
     void singUp_callMapToUserDTO() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var savedUser = new User().setUsername("test234");
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
-        when(mockUserRepository.save(any())).thenReturn(savedUser);
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(savedUser));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
 
         // WHEN
-        service.signUp(buildValidSignUpRequest());
+        final var mono = service.signUp(buildValidSignUpRequest());
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockUserMapper).mapToUserDTO(savedUser);
     }
 
     @Test
     void singUp_callGenerateAccessToken() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var savedUser = new User().setUsername("test234");
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
-        when(mockUserRepository.save(any())).thenReturn(savedUser);
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(savedUser));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
 
         // WHEN
-        service.signUp(buildValidSignUpRequest());
+        final var mono = service.signUp(buildValidSignUpRequest());
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockJwtTokenService).generateAccessToken(savedUser);
     }
 
     @Test
     void singUp_callCreateRefreshToken() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var savedUser = new User().setUsername("test234");
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
-        when(mockUserRepository.save(any())).thenReturn(savedUser);
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(savedUser));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just(""));
 
         // WHEN
-        service.signUp(buildValidSignUpRequest());
+        final var mono = service.signUp(buildValidSignUpRequest());
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockRefreshTokenService).createRefreshToken(savedUser);
     }
 
     @Test
     void singUp_checkResult() {
         // GIVEN
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+
         final var signUpRequest = buildValidSignUpRequest();
         when(mockUserMapper.mapToUser(any())).thenReturn(new User());
 
         final var mappedUserDTO = UserDTO.builder().build();
         when(mockUserMapper.mapToUserDTO(any())).thenReturn(mappedUserDTO);
         when(mockJwtTokenService.generateAccessToken(any())).thenReturn("access_token");
-        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn("refresh_token");
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+        when(mockRefreshTokenService.createRefreshToken(any())).thenReturn(Mono.just("refresh_token"));
 
         // WHEN
-        final var result = service.signUp(signUpRequest);
+        final var mono = service.signUp(signUpRequest);
 
         // THEN
-        assertThat(result.getUser()).isSameAs(mappedUserDTO);
-        assertThat(result.getAccessToken()).isEqualTo("access_token");
-        assertThat(result.getRefreshToken()).isEqualTo("refresh_token");
+        StepVerifier.create(mono)
+                .assertNext(result -> {
+                    assertThat(result.getUser()).isSameAs(mappedUserDTO);
+                    assertThat(result.getAccessToken()).isEqualTo("access_token");
+                    assertThat(result.getRefreshToken()).isEqualTo("refresh_token");
+                })
+                .verifyComplete();
     }
 
     private SignUpRequest buildValidSignUpRequest() {

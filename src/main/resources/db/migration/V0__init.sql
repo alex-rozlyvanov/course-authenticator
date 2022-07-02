@@ -2,9 +2,11 @@ drop table if exists refresh_token cascade;
 drop table if exists roles cascade;
 drop table if exists users cascade;
 drop table if exists users_roles cascade;
+CREATE
+EXTENSION IF NOT EXISTS "uuid-ossp";
 create table refresh_token
 (
-    id          uuid         not null,
+    id          uuid         not null DEFAULT uuid_generate_v4(),
     expiry_date timestamp    not null,
     token       varchar(255) not null,
     user_id     uuid,
@@ -12,13 +14,13 @@ create table refresh_token
 );
 create table roles
 (
-    id    uuid not null,
+    id    uuid not null DEFAULT uuid_generate_v4(),
     title varchar(255),
     primary key (id)
 );
 create table users
 (
-    id         uuid not null,
+    id         uuid not null DEFAULT uuid_generate_v4(),
     enabled    boolean,
     first_name varchar(255),
     last_name  varchar(255),
@@ -28,6 +30,7 @@ create table users
 );
 create table users_roles
 (
+    id      uuid not null DEFAULT uuid_generate_v4(),
     user_id uuid not null,
     role_id uuid not null
 );

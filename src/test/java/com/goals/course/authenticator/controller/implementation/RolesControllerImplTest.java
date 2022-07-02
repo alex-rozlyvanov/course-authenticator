@@ -1,5 +1,6 @@
 package com.goals.course.authenticator.controller.implementation;
 
+import com.goals.course.authenticator.controller.RolesController;
 import com.goals.course.authenticator.dto.RoleDTO;
 import com.goals.course.authenticator.service.UserRolesService;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +23,7 @@ class RolesControllerImplTest {
     @Mock
     private UserRolesService mockUserRolesService;
     @InjectMocks
-    private RolesControllerImpl service;
+    private RolesController service;
 
     @Test
     void getAllRoles_checkResult() {
@@ -29,13 +32,17 @@ class RolesControllerImplTest {
         final var role2 = RoleDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000002")).build();
         final var role3 = RoleDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000003")).build();
         final var roles = List.of(role1, role2, role3);
-        when(mockUserRolesService.getAllRoles()).thenReturn(roles);
+        when(mockUserRolesService.getAllRoles()).thenReturn(Flux.fromIterable(roles));
 
         // WHEN
-        final var result = service.getAllRoles();
+        final var flux = service.getAllRoles();
 
         // THEN
-        assertThat(result).isSameAs(roles);
+        StepVerifier.create(flux)
+                .assertNext(result1 -> assertThat(result1).isSameAs(role1))
+                .assertNext(result2 -> assertThat(result2).isSameAs(role2))
+                .assertNext(result3 -> assertThat(result3).isSameAs(role3))
+                .verifyComplete();
     }
 
 }

@@ -1,4 +1,4 @@
-package com.goals.course.authenticator.service.implementation;
+package com.goals.course.authenticator.service;
 
 import com.goals.course.authenticator.dao.entity.Role;
 import com.goals.course.authenticator.dao.entity.User;
@@ -10,20 +10,21 @@ import com.goals.course.authenticator.mapper.RoleMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserRolesServiceImplTest {
@@ -34,77 +35,91 @@ class UserRolesServiceImplTest {
     @Mock
     private RoleMapper mockRoleMapper;
     @InjectMocks
-    private UserRolesServiceImpl service;
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void changeUserRoles_callRolRepo_findAllById() {
-        // GIVEN
-        final var roleId1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        final var roleId2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
-        final var roleId3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
-        final var roleIds = List.of(roleId1, roleId2, roleId3);
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
-
-        // WHEN
-        service.changeUserRoles(null, roleIds);
-
-        // THEN
-        final var captor = ArgumentCaptor.forClass(Set.class);
-        verify(mockRoleRepository).findAllById(captor.capture());
-        assertThat(captor.getValue())
-                .hasSize(3)
-                .contains(roleId1, roleId2, roleId3);
-    }
+    private UserRolesService service;
 
     @Test
     void changeUserRoles_callUserRepo_findById() {
         // GIVEN
         final var userId = UUID.fromString("5d42d1c3-2f4e-4bcc-9154-6a8c11b400cd");
         final var roles = List.of(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(new User()));
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+        when(mockRoleRepository.findAllById(ArgumentMatchers.<Iterable<UUID>>any())).thenReturn(Flux.just(new Role()));
 
         // WHEN
-        service.changeUserRoles(userId, roles);
+        final var mono = service.changeUserRoles(userId, roles);
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         verify(mockUserRepository).findById(userId);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    void changeUserRoles_callRoleMapperMapToRoleDTOList() {
+    void changeUserRoles_callFindAllById() {
         // GIVEN
-        final var role1 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        final var role2 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
-        final var role3 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000003"));
-        final var roles = List.of(role1, role2, role3);
-        when(mockRoleRepository.findAllById(any())).thenReturn(roles);
-
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
+        final var roleId1 = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        final var roleId2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        final var roleId3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
+        final var roleIds = List.of(roleId1, roleId2, roleId3);
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(new User()));
+        when(mockRoleRepository.findAllById(ArgumentMatchers.<Iterable<UUID>>any())).thenReturn(Flux.just(new Role()));
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User()));
+//        when(mockRoleMapper.mapToRoleDTO(any())).thenReturn(RoleDTO.builder().build());
 
         // WHEN
-        service.changeUserRoles(null, List.of());
+        final var mono = service.changeUserRoles(UUID.fromString("00000000-0000-0000-0000-000000000001"), roleIds);
 
         // THEN
-        verify(mockRoleMapper).mapToRoleDTOList(roles);
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
+        final var captor = ArgumentCaptor.forClass(Set.class);
+        verify(mockRoleRepository).findAllById(captor.capture());
+        assertThat(captor.getValue())
+                .hasSize(3)
+                .containsExactly(roleId1, roleId2, roleId3);
     }
 
     @Test
-    void changeUserRoles_callUserRepoSave() {
+    void changeUserRoles_callMapToRoleDTO() {
+        // GIVEN
+        final var user = new User();
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(user));
+
+        final var role1 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        final var role2 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+        final var role3 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+        when(mockRoleRepository.findAllById(ArgumentMatchers.<Iterable<UUID>>any())).thenReturn(Flux.just(role1, role2, role3));
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(user));
+
+        // WHEN
+        final var mono = service.changeUserRoles(null, List.of());
+
+        // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
+        verify(mockRoleMapper, times(3)).mapToRoleDTO(any());
+        verify(mockRoleMapper).mapToRoleDTO(role1);
+        verify(mockRoleMapper).mapToRoleDTO(role2);
+        verify(mockRoleMapper).mapToRoleDTO(role3);
+    }
+
+    @Test
+    void changeUserRoles_callSave() {
         // GIVEN
         final var role1 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         final var role2 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         final var role3 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000003"));
         final var roles = List.of(role1, role2, role3);
-        when(mockRoleRepository.findAllById(any())).thenReturn(roles);
+        when(mockRoleRepository.findAllById(ArgumentMatchers.<Iterable<UUID>>any())).thenReturn(Flux.just(role1, role2, role3));
 
         final var user = new User().setId(UUID.fromString("00000000-0000-0000-0000-000000000000"));
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(user));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(user));
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(user));
 
         // WHEN
-        service.changeUserRoles(null, List.of());
+        final var mono = service.changeUserRoles(null, List.of());
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(1).verifyComplete();
         final var expectedUser = new User().setId(UUID.fromString("00000000-0000-0000-0000-000000000000"))
                 .setRoles(roles);
         verify(mockUserRepository).save(expectedUser);
@@ -113,17 +128,20 @@ class UserRolesServiceImplTest {
     @Test
     void changeUserRoles_checkResult() {
         // GIVEN
-        when(mockUserRepository.findById(any())).thenReturn(Optional.of(new User()));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(new User()));
 
         final var roleDTO = RoleDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000000")).build();
-        final var expectedRolesDTO = List.of(roleDTO);
-        when(mockRoleMapper.mapToRoleDTOList(any())).thenReturn(expectedRolesDTO);
+        when(mockRoleMapper.mapToRoleDTO(any())).thenReturn(roleDTO);
+        when(mockRoleRepository.findAllById(ArgumentMatchers.<Iterable<UUID>>any())).thenReturn(Flux.just(new Role()));
+        when(mockUserRepository.save(any())).thenReturn(Mono.just(new User().setRoles(List.of(new Role()))));
 
         // WHEN
-        final var result = service.changeUserRoles(null, List.of());
+        final var mono = service.changeUserRoles(null, List.of());
 
         // THEN
-        assertThat(result).isSameAs(expectedRolesDTO);
+        StepVerifier.create(mono)
+                .expectNext(List.of(roleDTO))
+                .verifyComplete();
     }
 
     @Test
@@ -131,14 +149,19 @@ class UserRolesServiceImplTest {
         // GIVEN
         final List<UUID> roles = List.of();
         final var userId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        when(mockUserRepository.findById(any())).thenReturn(Optional.empty());
+        when(mockUserRepository.findById(any())).thenReturn(Mono.empty());
 
         // WHEN
-        final var expectedException = assertThrows(
-                UserNotFoundException.class, () -> service.changeUserRoles(userId, roles));
+        final var mono = service.changeUserRoles(userId, roles);
 
         // THEN
-        assertThat(expectedException.getMessage()).isEqualTo("User with id '00000000-0000-0000-0000-000000000001' not found!");
+        StepVerifier.create(mono)
+                .expectErrorSatisfies(expectedException -> {
+                    assertThat(expectedException).isInstanceOf(UserNotFoundException.class);
+                    assertThat(expectedException.getMessage()).isEqualTo("User with id '00000000-0000-0000-0000-000000000001' not found!");
+
+                })
+                .verify();
     }
 
     @Test
@@ -147,13 +170,15 @@ class UserRolesServiceImplTest {
         final var role1 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         final var role2 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         final var role3 = new Role().setId(UUID.fromString("00000000-0000-0000-0000-000000000003"));
-        final var roles = List.of(role1, role2, role3);
-        when(mockRoleRepository.findAll()).thenReturn(roles);
+        when(mockRoleRepository.findAll()).thenReturn(Flux.just(role1, role2, role3));
+        when(mockRoleMapper.mapToRoleDTO(any())).thenReturn(RoleDTO.builder().build());
 
         // WHEN
-        service.getAllRoles();
+        final var mono = service.getAllRoles();
 
         // THEN
+        StepVerifier.create(mono).expectNextCount(3).verifyComplete();
+        verify(mockRoleMapper, times(3)).mapToRoleDTO(any());
         verify(mockRoleMapper).mapToRoleDTO(role1);
         verify(mockRoleMapper).mapToRoleDTO(role2);
         verify(mockRoleMapper).mapToRoleDTO(role3);
@@ -165,7 +190,7 @@ class UserRolesServiceImplTest {
         final var role1 = new Role().setTitle("1");
         final var role2 = new Role().setTitle("2");
         final var role3 = new Role().setTitle("3");
-        when(mockRoleRepository.findAll()).thenReturn(List.of(role1, role2, role3));
+        when(mockRoleRepository.findAll()).thenReturn(Flux.just(role1, role2, role3));
 
         final var roleDTO1 = RoleDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000001")).build();
         final var roleDTO2 = RoleDTO.builder().id(UUID.fromString("00000000-0000-0000-0000-000000000002")).build();
@@ -180,6 +205,9 @@ class UserRolesServiceImplTest {
         final var result = service.getAllRoles();
 
         // THEN
-        assertThat(result).hasSize(3).contains(roleDTO1, roleDTO2, roleDTO3);
+        StepVerifier.create(result)
+                .expectNext(roleDTO1, roleDTO2, roleDTO3)
+                .verifyComplete();
+
     }
 }

@@ -1,15 +1,16 @@
 package com.goals.course.authenticator.dao.repository;
 
-import com.goals.course.authenticator.dao.entity.Role;
+import com.goals.course.authenticator.dao.entity.UserRole;
 import org.springframework.data.repository.reactive.ReactiveSortingRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface RoleRepository extends ReactiveSortingRepository<Role, UUID> {
+public interface UserRoleRepository extends ReactiveSortingRepository<UserRole, UUID> {
     String SELECT_FIELDS = """
-            r.id as r_id,\
-            r.title as r_title\
+            ur.id as ur_id,\
+            ur.user_id as ur_user_id,\
+            ur.role_id as ur_role_id\
             """;
 }

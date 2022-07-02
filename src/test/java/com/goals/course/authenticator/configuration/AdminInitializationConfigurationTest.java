@@ -12,15 +12,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
 
-@SuppressWarnings("ConstantConditions")
 @ExtendWith(MockitoExtension.class)
 class AdminInitializationConfigurationTest {
 
@@ -37,77 +37,92 @@ class AdminInitializationConfigurationTest {
     @Test
     void onApplicationEvent_rolesAreNotPresent_callRoleRepo_save() {
         // GIVEN
-        when(mockRoleRepository.findAll()).thenReturn(List.of());
-
-        final var roles = Arrays.stream(Roles.values())
-                .map(v -> new Role().setTitle(v.name()))
-                .collect(Collectors.toList());
+        when(mockRoleRepository.findAll()).thenReturn(Flux.empty());
+        when(mockRoleRepository.save(any())).thenReturn(Mono.empty());
+        when(mockUserRepository.save(any())).thenReturn(Mono.empty());
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
 
         // WHEN
-        service.onApplicationEvent(null);
+        service.onApplicationEvent(null).subscribe();
 
         // THEN
+        final var roles = buildAllRoles();
         roles.forEach(r -> verify(mockRoleRepository).save(r));
     }
 
     @Test
     void onApplicationEvent_rolesArePresent_neverCallRoleRepo_save() {
         // GIVEN
-        final var roles = Arrays.stream(Roles.values())
-                .map(v -> new Role().setTitle(v.name()))
-                .collect(Collectors.toList());
-
-        when(mockRoleRepository.findAll()).thenReturn(roles);
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.just(new User()));
 
         // WHEN
-        service.onApplicationEvent(null);
+        final var mono = service.onApplicationEvent(null);
 
         // THEN
+        StepVerifier.create(mono).verifyComplete();
         verify(mockRoleRepository, never()).save(any());
     }
 
     @Test
     void onApplicationEvent_callUserRepo_findByUsername() {
         // GIVEN
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.just(new User()));
+
         ReflectionTestUtils.setField(service, "defaultAdminUsername", "secureUserName");
 
         // WHEN
-        service.onApplicationEvent(null);
+        final var mono = service.onApplicationEvent(null);
 
         // THEN
+        StepVerifier.create(mono).verifyComplete();
         verify(mockUserRepository).findByUsername("secureUserName");
     }
 
+    private List<Role> buildAllRoles() {
+        return Arrays.stream(Roles.values())
+                .map(v -> new Role().setTitle(v.name()))
+                .toList();
+    }
+
     @Test
-    void onApplicationEvent_adminIsNotPresent_callPasswordEncoder_encode() {
+    void onApplicationEvent_adminIsNotPresent_callEncode() {
         // GIVEN
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+        when(mockUserRepository.save(any())).thenReturn(Mono.empty());
+
         ReflectionTestUtils.setField(service, "defaultAdminPass", "securePass");
 
         // WHEN
-        service.onApplicationEvent(null);
+        final var mono = service.onApplicationEvent(null);
 
         // THEN
+        StepVerifier.create(mono).verifyComplete();
         verify(mockPasswordEncoder).encode("securePass");
     }
 
     @Test
-    void onApplicationEvent_adminIsNotPresent_callUserRepo_findByUsername() {
+    void onApplicationEvent_adminIsNotPresent_callSave() {
         // GIVEN
-        final var roles = Arrays.stream(Roles.values())
-                .map(v -> new Role().setTitle(v.name()))
-                .collect(Collectors.toList());
-
-        when(mockRoleRepository.findAll()).thenReturn(roles);
-        when(mockUserRepository.findByUsername(any())).thenReturn(Optional.empty());
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.empty());
+        when(mockUserRepository.save(any())).thenReturn(Mono.empty());
         when(mockPasswordEncoder.encode(any())).thenReturn("ENCODED_PASS");
         ReflectionTestUtils.setField(service, "defaultAdminFirstname", "Admin");
         ReflectionTestUtils.setField(service, "defaultAdminLastname", "Adminovich");
         ReflectionTestUtils.setField(service, "defaultAdminUsername", "secureUserName");
 
         // WHEN
-        service.onApplicationEvent(null);
+        final var mono = service.onApplicationEvent(null);
 
         // THEN
+        StepVerifier.create(mono).verifyComplete();
         final var adminUser = new User()
                 .setEnabled(true)
                 .setFirstName("Admin")
@@ -121,10 +136,12 @@ class AdminInitializationConfigurationTest {
     @Test
     void onApplicationEvent_adminIsPresent_neverCallPasswordEncoder_encode() {
         // GIVEN
-        when(mockUserRepository.findByUsername(any())).thenReturn(Optional.of(new User()));
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.just(new User()));
 
         // WHEN
-        service.onApplicationEvent(null);
+        service.onApplicationEvent(null).log().subscribe();
 
         // THEN
         verify(mockPasswordEncoder, never()).encode(any());
@@ -133,12 +150,15 @@ class AdminInitializationConfigurationTest {
     @Test
     void onApplicationEvent_adminIsPresent_neverCallUserRepo_findByUsername() {
         // GIVEN
-        when(mockUserRepository.findByUsername(any())).thenReturn(Optional.of(new User()));
+        final var roles = buildAllRoles();
+        when(mockRoleRepository.findAll()).thenReturn(Flux.fromIterable(roles));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.just(new User().setUsername("test")));
 
         // WHEN
-        service.onApplicationEvent(null);
+        final var mono = service.onApplicationEvent(null);
 
         // THEN
+        StepVerifier.create(mono).verifyComplete();
         verify(mockUserRepository, never()).save(any());
     }
 

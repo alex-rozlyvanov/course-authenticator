@@ -35,7 +35,7 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 @AutoConfigureWebClient
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ContextConfiguration(initializers = AuthenticationIT.Initializer.class)
-public class AuthenticationIT {
+class AuthenticationIT {
 
     @ClassRule
     public static final PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer<>("postgres:14.0")
@@ -205,9 +205,12 @@ public class AuthenticationIT {
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
             postgreSQLContainer.start();
             TestPropertyValues.of(
-                    "spring.datasource.url=" + postgreSQLContainer.getJdbcUrl(),
-                    "spring.datasource.username=" + postgreSQLContainer.getUsername(),
-                    "spring.datasource.password=" + postgreSQLContainer.getPassword()
+                    "spring.r2dbc.url=" + "r2dbc:postgresql://%s:%s/%s".formatted(postgreSQLContainer.getHost(), postgreSQLContainer.getFirstMappedPort(), postgreSQLContainer.getDatabaseName()),
+                    "spring.r2dbc.username=" + postgreSQLContainer.getUsername(),
+                    "spring.r2dbc.password=" + postgreSQLContainer.getPassword(),
+                    "spring.flyway.url=jdbc:postgresql://%s:%s/%s".formatted(postgreSQLContainer.getHost(), postgreSQLContainer.getFirstMappedPort(), postgreSQLContainer.getDatabaseName()),
+                    "spring.flyway.user=${spring.r2dbc.username}",
+                    "spring.flyway.password=${spring.r2dbc.password}"
             ).applyTo(configurableApplicationContext.getEnvironment());
         }
     }

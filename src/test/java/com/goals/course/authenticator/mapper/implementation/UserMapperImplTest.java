@@ -5,6 +5,7 @@ import com.goals.course.authenticator.dao.entity.User;
 import com.goals.course.authenticator.dto.RoleDTO;
 import com.goals.course.authenticator.dto.SignUpRequest;
 import com.goals.course.authenticator.mapper.RoleMapper;
+import com.goals.course.authenticator.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,7 +28,7 @@ class UserMapperImplTest {
     @Mock
     private RoleMapper mockRoleMapper;
     @InjectMocks
-    private UserMapperImpl mapper;
+    private UserMapper mapper;
 
     @Test
     void mapToUser_username_checkResult() {

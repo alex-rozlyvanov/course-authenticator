@@ -1,15 +1,22 @@
 package com.goals.course.authenticator.dao.repository;
 
 import com.goals.course.authenticator.dao.entity.RefreshToken;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 
-import java.util.Optional;
 import java.util.UUID;
 
-@Repository
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
-    Optional<RefreshToken> findByToken(final String token);
+public interface RefreshTokenRepository {
+    String SELECT_FIELDS = """
+            rt.id as rt_id,\
+            rt.token as rt_token,\
+            rt.expiry_date as rt_expiry_date\
+            """;
 
-    void deleteByUserId(UUID user);
+    Mono<RefreshToken> findByToken(final String token);
+
+    Mono<Integer> deleteByUserId(final UUID user);
+
+    Mono<Integer> delete(final RefreshToken token);
+
+    Mono<RefreshToken> save(final RefreshToken refreshToken);
 }

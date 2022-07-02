@@ -8,19 +8,21 @@ import com.goals.course.authenticator.dao.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AdminInitializationConfiguration implements ApplicationListener<ContextRefreshedEvent> {
+public class AdminInitializationConfiguration {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -34,38 +36,54 @@ public class AdminInitializationConfiguration implements ApplicationListener<Con
     @Value("${app.admin.lastname}")
     private String defaultAdminLastname;
 
-    @Override
-    @Transactional
-    public void onApplicationEvent(final ContextRefreshedEvent event) {
-        final var roles = initializeRoles();
-        initializeAdminUser(roles);
+    @EventListener
+    public Mono<Void> onApplicationEvent(final ContextRefreshedEvent event) {
+        return initializeRoles()
+                .flatMap(this::initializeAdminUser)
+                .flatMap(result -> Mono.empty());
     }
 
-    private List<Role> initializeRoles() {
-        final var existingRoles = roleRepository.findAll();
+    private Mono<List<Role>> initializeRoles() {
+        return roleRepository.findAll()
+                .collectList()
+                .map(this::getRolesToSave)
+                .flatMapIterable(list -> list)
+                .flatMap(role -> roleRepository.save(new Role().setTitle(role.getTitle())))
+                .switchIfEmpty(Flux.fromStream(this::buildAllRoles))
+                .collectList();
+    }
 
+    private Stream<Role> buildAllRoles() {
         return Arrays.stream(Roles.values())
-                .map(role -> saveOrGetRole(role.name(), existingRoles))
+                .map(role -> new Role().setTitle(role.name()));
+    }
+
+    private List<Role> getRolesToSave(final List<Role> existingRoles) {
+        return Arrays.stream(Roles.values())
+                .filter(role -> roleExists(existingRoles, role))
+                .map(role -> new Role().setTitle(role.name()))
                 .toList();
     }
 
-    private Role saveOrGetRole(final String roleTitle, final List<Role> existingRoles) {
-        return existingRoles
-                .stream()
-                .filter(r -> roleTitle.equals(r.getTitle()))
-                .findFirst()
-                .orElseGet(() -> roleRepository.save(new Role().setTitle(roleTitle)));
+    private boolean roleExists(List<Role> existingRoles, Roles role) {
+        return existingRoles.stream().noneMatch(r -> role.name().equals(r.getTitle()));
     }
 
-    private void initializeAdminUser(final List<Role> roles) {
-        final var user = userRepository.findByUsername(defaultAdminUsername);
+    private Mono<User> initializeAdminUser(final List<Role> roles) {
+        return userRepository.findByUsername(defaultAdminUsername)
+                .map(user -> {
+                    log.info("Admin already exists");
+                    return user;
+                })
+                .switchIfEmpty(Mono.defer(() -> createAdmin(roles)));
+    }
 
-        if (user.isPresent()) {
-            log.info("Admin already exists");
-        } else {
-            userRepository.save(buildAdminUser(roles));
-            log.info("Admin added successfully");
-        }
+    private Mono<User> createAdmin(List<Role> roles) {
+        return userRepository.save(buildAdminUser(roles))
+                .map(user -> {
+                    log.info("Admin added successfully. '{}'", user);
+                    return user;
+                });
     }
 
     private User buildAdminUser(final List<Role> roles) {

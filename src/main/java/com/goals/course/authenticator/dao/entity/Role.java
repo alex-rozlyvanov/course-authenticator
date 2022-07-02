@@ -2,28 +2,23 @@ package com.goals.course.authenticator.dao.entity;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.GenericGenerator;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.security.core.GrantedAuthority;
 
-import javax.persistence.*;
 import java.util.UUID;
 
 @Data
 @Accessors(chain = true)
-@Entity
-@Table(name = "roles")
+@Table("roles")
 public class Role implements GrantedAuthority {
 
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(
-            name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator"
-    )
-    @Column(updatable = false, nullable = false)
+    @Column
     private UUID id;
 
-    @Column(unique = true)
+    @Column
     private String title;
 
     @Override

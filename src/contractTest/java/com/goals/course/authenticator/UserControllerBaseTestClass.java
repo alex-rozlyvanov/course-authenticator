@@ -8,34 +8,32 @@ import com.goals.course.authenticator.dto.RoleDTO;
 import com.goals.course.authenticator.dto.UserDTO;
 import com.goals.course.authenticator.service.JwtTokenService;
 import com.goals.course.authenticator.service.UserService;
-import io.restassured.module.mockmvc.RestAssuredMockMvc;
+import io.restassured.RestAssured;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicationContext;
 import org.springframework.cloud.contract.verifier.messaging.boot.AutoConfigureMessageVerifier;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ActiveProfiles("contract-test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMessageVerifier
-@AutoConfigureMockMvc
 @ContextConfiguration(initializers = UserControllerBaseTestClass.Initializer.class)
 public class UserControllerBaseTestClass {
 
@@ -44,28 +42,32 @@ public class UserControllerBaseTestClass {
             .withDatabaseName("course_authenticator")
             .withUsername("sa")
             .withPassword("sa");
-    @Autowired
-    private MockMvc mockMvc;
     @MockBean
     private UserService mockUserService;
     @MockBean
     private JwtTokenService mockJwtTokenService;
     @MockBean
     private UserRepository mockUserRepository;
+    @Autowired
+    ReactiveWebServerApplicationContext reactiveWebServerApplicationContext;
+
 
     @BeforeEach
+    @SuppressWarnings("java:S2696")
     public void setup() {
         init();
-        RestAssuredMockMvc.mockMvc(mockMvc);
+        final var port = reactiveWebServerApplicationContext.getWebServer().getPort();
+        RestAssured.baseURI = "http://localhost:" + port;
     }
 
     private void init() {
         final var userDTO = getUserDTO();
         final var user = getUser();
 
-        when(mockUserService.getCurrentUser()).thenReturn(userDTO);
-        when(mockUserService.getUserById(any())).thenReturn(userDTO);
-        when(mockUserRepository.findByUsername(any())).thenReturn(Optional.of(user));
+        when(mockUserService.getCurrentUser()).thenReturn(Mono.just(userDTO));
+        when(mockUserService.getUserById(any())).thenReturn(Mono.just(userDTO));
+        when(mockUserRepository.findByUsername(any())).thenReturn(Mono.just(user));
+        when(mockUserRepository.findById(any())).thenReturn(Mono.just(user));
         when(mockJwtTokenService.validate(any())).thenReturn(true);
     }
 
@@ -107,9 +109,12 @@ public class UserControllerBaseTestClass {
         public void initialize(ConfigurableApplicationContext configurableApplicationContext) {
             postgreSQLContainer.start();
             TestPropertyValues.of(
-                    "spring.datasource.url=" + postgreSQLContainer.getJdbcUrl(),
-                    "spring.datasource.username=" + postgreSQLContainer.getUsername(),
-                    "spring.datasource.password=" + postgreSQLContainer.getPassword()
+                    "spring.r2dbc.url=" + "r2dbc:postgresql://%s:%s/%s".formatted(postgreSQLContainer.getHost(), postgreSQLContainer.getFirstMappedPort(), postgreSQLContainer.getDatabaseName()),
+                    "spring.r2dbc.username=" + postgreSQLContainer.getUsername(),
+                    "spring.r2dbc.password=" + postgreSQLContainer.getPassword(),
+                    "spring.flyway.url=jdbc:postgresql://%s:%s/%s".formatted(postgreSQLContainer.getHost(), postgreSQLContainer.getFirstMappedPort(), postgreSQLContainer.getDatabaseName()),
+                    "spring.flyway.user=${spring.r2dbc.username}",
+                    "spring.flyway.password=${spring.r2dbc.password}"
             ).applyTo(configurableApplicationContext.getEnvironment());
         }
     }
