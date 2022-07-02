@@ -40,7 +40,7 @@ public class SignUpService {
 
     private Mono<User> verifyUserExists(final SignUpRequest request) {
         final var user = mapToUser(request);
-        log.info("verifyUserExists '{}'", user);
+        log.info("Verify User Exists '{}'", user.getUsername());
         return userRepository.findByUsername(user.getUsername())
                 .flatMap(u -> Mono.error(new UserAlreadyExistsException(user.getId())))
                 .map(User.class::cast) // crutch

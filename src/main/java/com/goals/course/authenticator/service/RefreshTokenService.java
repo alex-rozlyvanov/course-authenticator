@@ -56,7 +56,7 @@ public class RefreshTokenService {
 
     @Transactional
     public Mono<String> createRefreshToken(final User user) {
-        log.info("Creating refresh token for user {}", user.getId());
+        log.info("Creating refresh token for user '{}'", user.getId());
         final var refreshToken = new RefreshToken()
                 .setUser(user)
                 .setExpiryDate(clock.instant().plusMillis(jwtTokenService.getRefreshTokenExpirationMs()))

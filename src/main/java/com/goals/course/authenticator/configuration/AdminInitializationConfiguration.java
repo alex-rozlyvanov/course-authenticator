@@ -81,7 +81,7 @@ public class AdminInitializationConfiguration {
     private Mono<User> createAdmin(List<Role> roles) {
         return userRepository.save(buildAdminUser(roles))
                 .map(user -> {
-                    log.info("Admin added successfully. '{}'", user);
+                    log.info("Admin added successfully. '{}'", user.getId());
                     return user;
                 });
     }
