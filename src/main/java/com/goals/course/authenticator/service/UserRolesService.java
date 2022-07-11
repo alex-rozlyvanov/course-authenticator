@@ -9,6 +9,7 @@ import com.goals.course.authenticator.mapper.RoleMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +25,7 @@ public class UserRolesService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
 
+    @Transactional
     public Mono<List<RoleDTO>> changeUserRoles(final UUID userId, final List<UUID> roleIds) {
         log.info("Changing user '{}' roles to [{}]", userId, roleIds);
         return userRepository.findById(userId)

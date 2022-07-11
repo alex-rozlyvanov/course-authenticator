@@ -25,12 +25,13 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(HttpClientErrorException.class)
     protected ResponseEntity<ErrorResponse> handleConflict(final HttpClientErrorException ex, ServerWebExchange exchange) {
-        final var path = exchange.getRequest().getPath().value();
+        final var path = exchange.getRequest().getURI().toString();
         final var errorResponse = ErrorResponse.builder()
                 .timestamp(ZonedDateTime.now(clock))
                 .status(ex.getStatusCode().value())
                 .error(ex.getMessage())
                 .path(path)
+                .requestId(exchange.getRequest().getId())
                 .build();
 
         logError(ex, exchange);
@@ -46,6 +47,7 @@ public class GlobalControllerExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Data integrity violation exception occurred")
                 .path(path)
+                .requestId(exchange.getRequest().getId())
                 .build();
 
         logError(ex, exchange);
