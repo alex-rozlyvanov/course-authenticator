@@ -1,7 +1,3 @@
-drop table if exists refresh_token cascade;
-drop table if exists roles cascade;
-drop table if exists users cascade;
-drop table if exists users_roles cascade;
 CREATE
 EXTENSION IF NOT EXISTS "uuid-ossp";
 create table refresh_token

@@ -8,7 +8,7 @@ buildscript {
 plugins {
     id 'java'
     id 'io.spring.dependency-management' version '1.0.12.RELEASE'
-    id 'org.springframework.boot' version '2.6.3'
+    id 'org.springframework.boot' version "${springBootVersion}"
     id 'org.springframework.cloud.contract' version '3.0.4'
 }
 
@@ -46,7 +46,7 @@ check.dependsOn integrationTest
 
 contracts {
     baseClassForTests = 'com.goals.course.authenticator.UserControllerBaseTestClass'
-    testMode = 'EXPLICIT'
+    testMode = 'WEBTESTCLIENT'
 }
 
 dependencies {
@@ -76,7 +76,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'io.projectreactor:reactor-test:3.4.16'
+    testImplementation 'io.projectreactor:reactor-test:3.4.18'
 
 // integrationTest =================================================================================
     integrationTestCompileOnly 'org.projectlombok:lombok'
@@ -98,6 +98,7 @@ dependencies {
     contractTestImplementation 'org.springframework.boot:spring-boot-starter-test'
     contractTestImplementation 'org.springframework.security:spring-security-test'
     contractTestImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+    contractTestImplementation 'io.rest-assured:spring-web-test-client:5.1.1'
     contractTestImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
 
 }

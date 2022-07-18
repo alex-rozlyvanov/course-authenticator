@@ -9,6 +9,7 @@ import com.goals.course.authenticator.dto.UserDTO;
 import com.goals.course.authenticator.service.JwtTokenService;
 import com.goals.course.authenticator.service.UserService;
 import io.restassured.RestAssured;
+import io.restassured.module.webtestclient.RestAssuredWebTestClient;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicationContext;
 import org.springframework.cloud.contract.verifier.messaging.boot.AutoConfigureMessageVerifier;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -49,15 +51,13 @@ public class UserControllerBaseTestClass {
     @MockBean
     private UserRepository mockUserRepository;
     @Autowired
-    ReactiveWebServerApplicationContext reactiveWebServerApplicationContext;
-
+    private ApplicationContext applicationContext;
 
     @BeforeEach
     @SuppressWarnings("java:S2696")
     public void setup() {
         init();
-        final var port = reactiveWebServerApplicationContext.getWebServer().getPort();
-        RestAssured.baseURI = "http://localhost:" + port;
+        RestAssuredWebTestClient.applicationContextSetup(applicationContext);
     }
 
     private void init() {

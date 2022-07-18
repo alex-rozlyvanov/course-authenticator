@@ -47,10 +47,7 @@ public class WebSecurityConfig {
                 .pathMatchers(HttpMethod.POST, "/api/authenticator/login").permitAll()
                 .pathMatchers(HttpMethod.POST, "/api/authenticator/signup").permitAll()
                 .pathMatchers(HttpMethod.POST, "/api/authenticator/refresh").permitAll()
-                .pathMatchers(HttpMethod.POST, "/api/manager/courses").hasAnyAuthority(Roles.ADMIN.name())
-                .pathMatchers(HttpMethod.PATCH, "/api/manager/courses/*/instructors").hasAnyAuthority(Roles.ADMIN.name(), Roles.INSTRUCTOR.name())
-                .pathMatchers(HttpMethod.GET, "/api/manager/courses/*/students").hasAnyAuthority(Roles.ADMIN.name(), Roles.INSTRUCTOR.name())
-                .pathMatchers(HttpMethod.PATCH, "/api/manager/courses/*/take").hasAuthority(Roles.ADMIN.name())
+                .pathMatchers( "/api/authenticator/roles").hasAuthority(Roles.ADMIN.name())
                 .anyExchange().authenticated()
                 .and()
                 .build();
