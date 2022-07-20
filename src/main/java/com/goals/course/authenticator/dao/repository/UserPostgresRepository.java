@@ -28,8 +28,8 @@ public class UserPostgresRepository implements UserRepository {
         final var query = """
                 SELECT %s, %s
                 FROM users u
-                INNER JOIN users_roles ur on u.id = ur.user_id
-                INNER JOIN roles r ON ur.role_id = r.id
+                FULL OUTER JOIN users_roles ur on u.id = ur.user_id
+                FULL OUTER JOIN roles r ON ur.role_id = r.id
                 WHERE u.username = :username;
                 """.formatted(SELECT_FIELDS, RoleRepository.SELECT_FIELDS);
 
